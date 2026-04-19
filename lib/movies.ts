@@ -10,20 +10,34 @@ export type MovieEntry = {
   watch_link: string;
 };
 
-const DB_PATH = path.join(process.cwd(), "data", "movies.json");
+const IS_VERCEL = !!process.env.VERCEL;
+const LOCAL_DB_PATH = path.join(process.cwd(), "data", "movies.json");
+const KV_KEY = "movies";
+
+async function kvGet(): Promise<MovieEntry[]> {
+  const { kv } = await import("@vercel/kv");
+  const data = await kv.get<MovieEntry[]>(KV_KEY);
+  return data ?? [];
+}
+
+async function kvSet(movies: MovieEntry[]): Promise<void> {
+  const { kv } = await import("@vercel/kv");
+  await kv.set(KV_KEY, movies);
+}
 
 export async function getAllMovies(): Promise<MovieEntry[]> {
+  if (IS_VERCEL) return kvGet();
   try {
-    const raw = await fs.readFile(DB_PATH, "utf-8");
+    const raw = await fs.readFile(LOCAL_DB_PATH, "utf-8");
     return JSON.parse(raw) as MovieEntry[];
   } catch {
-    try { await saveMovies([]); } catch { /* read-only fs on Vercel — ignore */ }
     return [];
   }
 }
 
 export async function saveMovies(movies: MovieEntry[]): Promise<void> {
-  await fs.writeFile(DB_PATH, JSON.stringify(movies, null, 2), "utf-8");
+  if (IS_VERCEL) return kvSet(movies);
+  await fs.writeFile(LOCAL_DB_PATH, JSON.stringify(movies, null, 2), "utf-8");
 }
 
 export async function addMovie(
