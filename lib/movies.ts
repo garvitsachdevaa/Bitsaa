@@ -14,6 +14,10 @@ const IS_VERCEL = !!process.env.VERCEL;
 const LOCAL_DB_PATH = path.join(process.cwd(), "data", "movies.json");
 const KV_KEY = "movies";
 
+const HAS_REDIS =
+  !!process.env.UPSTASH_REDIS_REST_URL &&
+  !!process.env.UPSTASH_REDIS_REST_TOKEN;
+
 async function getRedis() {
   const { Redis } = await import("@upstash/redis");
   return new Redis({
@@ -34,7 +38,8 @@ async function kvSet(movies: MovieEntry[]): Promise<void> {
 }
 
 export async function getAllMovies(): Promise<MovieEntry[]> {
-  if (IS_VERCEL) return kvGet();
+  if (HAS_REDIS) return kvGet();
+  if (IS_VERCEL) return []; // Redis not configured yet
   try {
     const raw = await fs.readFile(LOCAL_DB_PATH, "utf-8");
     return JSON.parse(raw) as MovieEntry[];
@@ -44,7 +49,8 @@ export async function getAllMovies(): Promise<MovieEntry[]> {
 }
 
 export async function saveMovies(movies: MovieEntry[]): Promise<void> {
-  if (IS_VERCEL) return kvSet(movies);
+  if (HAS_REDIS) return kvSet(movies);
+  if (IS_VERCEL) throw new Error("UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are not set");
   await fs.writeFile(LOCAL_DB_PATH, JSON.stringify(movies, null, 2), "utf-8");
 }
 
