@@ -7,14 +7,14 @@ export type InferredMovie = {
   reason: string;
 };
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 export async function inferMovieFromText(
   raw_text: string
 ): Promise<InferredMovie> {
   if (!raw_text.trim()) {
     return { is_movie: false, title: null, confidence: 0, reason: "No text provided" };
   }
+
+  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
   const completion = await client.chat.completions.create({
     model: "gpt-4o",
