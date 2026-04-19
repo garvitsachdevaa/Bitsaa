@@ -25,8 +25,8 @@ export default function HomePage() {
     setError(null);
     setInfoMessage(null);
 
-    if (!rawText.trim()) {
-      setError("Reel caption / transcript is required.");
+    if (!reelUrl.trim() && !rawText.trim()) {
+      setError("Please provide a Reel URL or a caption.");
       return;
     }
 
@@ -65,7 +65,7 @@ export default function HomePage() {
         <div>
           <h1 className="text-2xl font-bold">Movies from Instagram Reels</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Paste a reel caption or transcript to extract and save movie recommendations.
+            Paste a Reel URL — we'll try to detect the movie automatically. Add a caption for better accuracy.
           </p>
         </div>
 
@@ -75,7 +75,7 @@ export default function HomePage() {
         >
           <div>
             <label className="block text-sm font-medium mb-1" htmlFor="reel_url">
-              Reel URL <span className="text-gray-400">(optional)</span>
+              Reel URL <span className="text-blue-500 text-xs font-normal">(primary)</span>
             </label>
             <input
               id="reel_url"
@@ -89,13 +89,16 @@ export default function HomePage() {
 
           <div>
             <label className="block text-sm font-medium mb-1" htmlFor="raw_text">
-              Reel caption / transcript <span className="text-red-500">*</span>
+              Caption / transcript{" "}
+              <span className="text-gray-400 text-xs font-normal">
+                (optional — improves accuracy)
+              </span>
             </label>
             <textarea
               id="raw_text"
               value={rawText}
               onChange={(e) => setRawText(e.target.value)}
-              rows={4}
+              rows={3}
               placeholder="Paste the reel caption or transcript here..."
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
@@ -113,7 +116,9 @@ export default function HomePage() {
         </form>
 
         {infoMessage && (
-          <p className="text-sm text-gray-500 text-center">{infoMessage}</p>
+          <p className="text-sm text-amber-600 text-center bg-amber-50 rounded-lg px-4 py-3">
+            {infoMessage}
+          </p>
         )}
 
         <div>

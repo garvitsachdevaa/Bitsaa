@@ -15,23 +15,33 @@ export async function POST(req: NextRequest) {
       raw_text?: string;
     };
 
-    if (!raw_text || !raw_text.trim()) {
+    const hasUrl = reel_url && reel_url.trim();
+    const hasText = raw_text && raw_text.trim();
+
+    if (!hasUrl && !hasText) {
       return NextResponse.json(
-        { error: "raw_text is required" },
+        { error: "Provide at least a reel_url or raw_text." },
         { status: 400 }
       );
     }
 
-    const movie = await processReelInput(reel_url ?? "", raw_text);
+    const result = await processReelInput(reel_url ?? "", raw_text ?? "");
 
-    if (!movie) {
+    if (result.status === "created") {
+      return NextResponse.json({ created: true, movie: result.movie }, { status: 201 });
+    }
+
+    if (result.status === "extraction_failed") {
       return NextResponse.json(
-        { created: false, message: "No movie recommendation detected or low confidence" },
+        { created: false, message: result.message },
         { status: 200 }
       );
     }
 
-    return NextResponse.json({ created: true, movie }, { status: 201 });
+    return NextResponse.json(
+      { created: false, message: result.message },
+      { status: 200 }
+    );
   } catch (err) {
     console.error("POST /api/movies error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
