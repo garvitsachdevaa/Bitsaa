@@ -14,15 +14,23 @@ const IS_VERCEL = !!process.env.VERCEL;
 const LOCAL_DB_PATH = path.join(process.cwd(), "data", "movies.json");
 const KV_KEY = "movies";
 
+async function getRedis() {
+  const { Redis } = await import("@upstash/redis");
+  return new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL!,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  });
+}
+
 async function kvGet(): Promise<MovieEntry[]> {
-  const { kv } = await import("@vercel/kv");
-  const data = await kv.get<MovieEntry[]>(KV_KEY);
+  const redis = await getRedis();
+  const data = await redis.get<MovieEntry[]>(KV_KEY);
   return data ?? [];
 }
 
 async function kvSet(movies: MovieEntry[]): Promise<void> {
-  const { kv } = await import("@vercel/kv");
-  await kv.set(KV_KEY, movies);
+  const redis = await getRedis();
+  await redis.set(KV_KEY, movies);
 }
 
 export async function getAllMovies(): Promise<MovieEntry[]> {
