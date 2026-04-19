@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import type { MovieEntry } from "@/lib/movies";
 
+const API_BASE = "/api";
+
 export default function HomePage() {
   const [movies, setMovies] = useState<MovieEntry[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -13,7 +15,7 @@ export default function HomePage() {
   const [rawText, setRawText] = useState("");
 
   useEffect(() => {
-    fetch("/api/movies")
+    fetch(`${API_BASE}/movies`)
       .then((r) => r.json())
       .then((data) => setMovies(data.movies ?? []))
       .catch(() => setError("Failed to load movies."))

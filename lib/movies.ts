@@ -10,36 +10,38 @@ export type MovieEntry = {
   watch_link: string;
 };
 
-const IS_VERCEL = !!process.env.VERCEL;
 const LOCAL_DB_PATH = path.join(process.cwd(), "data", "movies.json");
-const KV_KEY = "movies";
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const HAS_REDIS = !!UPSTASH_URL && !!UPSTASH_TOKEN;
 
-const HAS_REDIS =
-  !!process.env.UPSTASH_REDIS_REST_URL &&
-  !!process.env.UPSTASH_REDIS_REST_TOKEN;
+async function redisGet(): Promise<MovieEntry[]> {
+  const res = await fetch(`${UPSTASH_URL}/pipeline`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${UPSTASH_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify([["GET", "movies"]]),
+    cache: "no-store",
+  });
+  const json = (await res.json()) as [{ result: string | null }];
+  return json[0].result ? (JSON.parse(json[0].result) as MovieEntry[]) : [];
+}
 
-async function getRedis() {
-  const { Redis } = await import("@upstash/redis");
-  return new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL!,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+async function redisSet(movies: MovieEntry[]): Promise<void> {
+  await fetch(`${UPSTASH_URL}/pipeline`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${UPSTASH_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify([["SET", "movies", JSON.stringify(movies)]]),
   });
 }
 
-async function kvGet(): Promise<MovieEntry[]> {
-  const redis = await getRedis();
-  const data = await redis.get<MovieEntry[]>(KV_KEY);
-  return data ?? [];
-}
-
-async function kvSet(movies: MovieEntry[]): Promise<void> {
-  const redis = await getRedis();
-  await redis.set(KV_KEY, movies);
-}
-
 export async function getAllMovies(): Promise<MovieEntry[]> {
-  if (HAS_REDIS) return kvGet();
-  if (IS_VERCEL) return []; // Redis not configured yet
+  if (HAS_REDIS) return redisGet();
   try {
     const raw = await fs.readFile(LOCAL_DB_PATH, "utf-8");
     return JSON.parse(raw) as MovieEntry[];
@@ -49,8 +51,7 @@ export async function getAllMovies(): Promise<MovieEntry[]> {
 }
 
 export async function saveMovies(movies: MovieEntry[]): Promise<void> {
-  if (HAS_REDIS) return kvSet(movies);
-  if (IS_VERCEL) throw new Error("UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are not set");
+  if (HAS_REDIS) return redisSet(movies);
   await fs.writeFile(LOCAL_DB_PATH, JSON.stringify(movies, null, 2), "utf-8");
 }
 
