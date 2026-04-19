@@ -17,7 +17,7 @@ export async function getAllMovies(): Promise<MovieEntry[]> {
     const raw = await fs.readFile(DB_PATH, "utf-8");
     return JSON.parse(raw) as MovieEntry[];
   } catch {
-    await saveMovies([]);
+    try { await saveMovies([]); } catch { /* read-only fs on Vercel — ignore */ }
     return [];
   }
 }

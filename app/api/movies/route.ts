@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAllMovies } from "@/lib/movies";
 import { processReelInput } from "@/lib/processReel";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const movies = await getAllMovies();
   return NextResponse.json({ movies }, { status: 200 });
